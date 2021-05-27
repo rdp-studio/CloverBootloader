@@ -9,7 +9,7 @@
 import Foundation
 
 let releasesUrl = URL(string:
-"https://github.com/CloverHackyColor/CloverBootloader/releases/latest")!
+"https://github.com/rdp-studio/CloverBootloader/releases/latest")!
 
 func getLatestReleases(reply: @escaping (String?, String?, String?, String?) -> Void) {
   var bootlink : String? = nil
@@ -31,7 +31,7 @@ func getLatestReleases(reply: @escaping (String?, String?, String?, String?) -> 
     
     let reponse : String = String(data: data, encoding: .utf8)!
     for line in reponse.components(separatedBy: .newlines) {
-      if (line.range(of: "href=\"/CloverHackyColor/CloverBootloader/releases/download/") != nil) {
+      if (line.range(of: "href=\"/rdp-studio/CloverBootloader/releases/download/") != nil) {
         bootlink = line.components(separatedBy: "href=\"")[1]
         bootlink = "https://github.com\(bootlink!.components(separatedBy: "\"")[0])"
         
@@ -49,7 +49,7 @@ func getLatestReleases(reply: @escaping (String?, String?, String?, String?) -> 
     }
     
     for line in reponse.components(separatedBy: .newlines) {
-      if (line.range(of: "href=\"/CloverHackyColor/CloverBootloader/releases/download/") != nil) {
+      if (line.range(of: "href=\"/rdp-studio/CloverBootloader/releases/download/") != nil) {
         applink = line.components(separatedBy: "href=\"")[1]
         //applink = "/CloverHackyColor/CloverBootloader/releases/download/5099/Clover.app_v1.17_r5104.pkg.zip\" rel=\"nofollow\" class=\"d-flex flex-items-center min-width-0\">"
         applink = "https://github.com\(applink!.components(separatedBy: "\"")[0])"
