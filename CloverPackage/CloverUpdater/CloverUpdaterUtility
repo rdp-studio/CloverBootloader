@@ -8,7 +8,7 @@ declare -r SED="/usr/bin/sed"
 declare -r IOREG="/usr/sbin/ioreg"
 declare -r OPEN="/usr/bin/open"
 declare -r PLISTBUDDY="/usr/libexec/PlistBuddy"
-declare -r CLOVER_LAST_VERSION_URL="https://github.com/CloverHackyColor/CloverBootloader/releases"
+declare -r CLOVER_LAST_VERSION_URL="https://github.com/rdp-studio/CloverBootloader/releases"
 declare -r CLOVER_APP_SUPPORT="/Library/Application Support/Clover"
 declare -r CLOVER_INSTALLER_PLIST=/Library/Preferences/com.projectosx.clover.installer.plist
 declare -r CLOVER_UPDATER_PLIST="$HOME"/Library/Preferences/com.projectosx.clover.updater.plist
@@ -61,7 +61,7 @@ choice=$("$CLOVER_APP_SUPPORT"/CloverUpdater.app/Contents/MacOS/CloverUpdater \
 case "$choice" in
     -1) "$PLISTBUDDY" -c "Add AllowUpdate bool false" "$CLOVER_UPDATER_PLIST" &>/dev/null
         ;;
-     1) open https://github.com/CloverHackyColor/CloverBootloader/releases/download/${last_revision}/Clover_r${last_revision}.pkg
+     1) open https://github.com/rdp-studio/CloverBootloader/releases/download/${last_revision}/Clover_r${last_revision}.pkg
         ;;
 esac
 
