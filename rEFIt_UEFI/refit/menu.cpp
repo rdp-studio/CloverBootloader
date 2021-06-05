@@ -1101,7 +1101,9 @@ void AboutRefit(void)
     AboutMenu.Entries[AboutMenu.Entries.size()-1].Title.SWPrintf(" ");
     AboutMenu.AddMenuInfo_f("Based on rEFIt (c) 2006-2010 Christoph Pfisterer");
     AboutMenu.AddMenuInfo_f("Portions Copyright (c) Intel Corporation");
+    AboutMenu.AddMenuInfo_f("This version of Clover is a fork by RDPStudio, Inc.");
     AboutMenu.AddMenuInfo_f("Developers:");
+    AboutMenu.AddMenuInfo_f("  RDPStudio, Inc.");
     AboutMenu.AddMenuInfo_f("  Slice, dmazar, apianti, JrCs, pene, usrsse2");
     AboutMenu.AddMenuInfo_f("  Kabyl, pcj, jadran, Blackosx, STLVNUB, ycr.ru");
     AboutMenu.AddMenuInfo_f("  FrodoKenny, skoczi, crazybirdy, Oscar09, xsmile");
