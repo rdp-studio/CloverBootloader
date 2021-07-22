@@ -548,7 +548,7 @@ return Status;
 }
 
 /*
- * Load a plist into configPlist global object, "transfer" the settings into gSettings and call afterGetUserSettings()
+ * Load a plist into configPlist global object
  * ConfName : name of the file, without .plist extension. File will be searched in OEM or main folder
  */
 EFI_STATUS ConfigManager::LoadConfigPlist(const XStringW& ConfName)
@@ -559,7 +559,7 @@ EFI_STATUS ConfigManager::LoadConfigPlist(const XStringW& ConfName)
 }
 
 /*
- * Load a plist into smbiosPlist global object, "transfer" the settings into gSettings and call afterGetUserSettings()
+ * Load a plist into smbiosPlist global object
  * ConfName : name of the file, without .plist extension. File will be searched in OEM or main folder
  */
 EFI_STATUS ConfigManager::LoadSMBIOSPlist(const XStringW& ConfName)
@@ -737,9 +737,9 @@ void ConfigManager::applySettings() const
       }
       if ( !configPlist.ACPI.SSDT.getC3Latency().isDefined() )
         gSettings.ACPI.SSDT._C3Latency = 0x00FA;
+
     }
     //gSettings.CPU.Turbo                = gCPUStructure.Turbo;
-    gSettings.CPU.SavingMode           = 0xFF;  //means not set
     if ( gCPUStructure.Model >= CPU_MODEL_SKYLAKE_D )
     {
       if ( !configPlist.CPU.getUseARTFreq().isDefined() )
@@ -801,12 +801,6 @@ void ConfigManager::applySettings() const
       DBG("Set MaxRatio for QEMU: %d\n", gCPUStructure.MaxRatio);
       gCPUStructure.MaxRatio *= 10;
       gCPUStructure.MinRatio = 60;
-  /*    AsmWriteMsr64(MSR_FLEX_RATIO, ((6ULL << 40) + //(1ULL << 16) +
-                                     (gCPUStructure.MaxRatio << 8)));
-      DBG("check if flex is RW\n");
-      Msrflex = AsmReadMsr64(MSR_FLEX_RATIO); //0 == not Rw :(
-      DBG("MSR_FLEX_RATIO = %lx\n", Msrflex);
-   */
       gCPUStructure.FSBFrequency = DivU64x32(MultU64x32(gCPUStructure.CPUFrequency, 10),
                                              (gCPUStructure.MaxRatio == 0) ? 1 : gCPUStructure.MaxRatio);
       gCPUStructure.ExternalClock = (UINT32)DivU64x32(gCPUStructure.FSBFrequency + Kilo - 1, Kilo);
@@ -889,33 +883,31 @@ EFI_STATUS ConfigManager::LoadConfig(const XStringW& ConfName)
   EFI_STATUS Status = LoadConfigPlist(ConfName);
   if ( EFI_ERROR(Status) ) {
     DBG("LoadConfigPlist return %s. Config not loaded\n", efiStrError(Status));
-    return Status;
+    //return Status; // Let's try to continue with default values.
   }
   
   /*Status = */ LoadSMBIOSPlist(L"smbios"_XSW); // we don't need Status. If not loaded correctly, smbiosPlist is !defined and will be ignored by AssignOldNewSettings()
 
   MACHINE_TYPES  Model = iMac132;
-  if ( smbiosPlist.SMBIOS.isDefined() ) {
-    if ( smbiosPlist.SMBIOS.hasModel() ) {
-      Model = smbiosPlist.SMBIOS.getModel();
-    }
-  } if ( configPlist.getSMBIOS().hasModel() ) {
-      Model = configPlist.getSMBIOS().getModel();
-  }else{
+  if ( smbiosPlist.SMBIOS.isDefined() && smbiosPlist.SMBIOS.hasModel()) {
+    Model = smbiosPlist.SMBIOS.getModel();
+  } else if ( configPlist.getSMBIOS().hasModel() ) {
+    Model = configPlist.getSMBIOS().getModel();
+  } else {
     Model = GetDefaultModel();
   }
 
   if ( !EFI_ERROR(Status) ) {
-    gSettings.takeValueFrom(configPlist);
-    // TODO improve this (avoid to delete settings to re-import them !)
-    // restore default value for SMBIOS (delete values from configPlist)
-    SetDMISettingsForModel(Model, &gSettings, &GlobalConfig);
-    // import values from configPlist if they are defined
-    FillSmbiosWithDefaultValue(Model, configPlist.getSMBIOS());
-    if ( smbiosPlist.SMBIOS.isDefined() ) {
-      // import values from smbiosPlist if they are defined
-      FillSmbiosWithDefaultValue(Model, smbiosPlist.SMBIOS);
-    }
+    gSettings.takeValueFrom(configPlist); // if load failed, keep default value.
+  }
+  // TODO improve this (avoid to delete settings to re-import them !)
+  // restore default value for SMBIOS (delete values from configPlist)
+  SetDMISettingsForModel(Model, &gSettings, &GlobalConfig);
+  // import values from configPlist if they are defined
+  FillSmbiosWithDefaultValue(Model, configPlist.getSMBIOS());
+  if ( smbiosPlist.SMBIOS.isDefined() ) {
+    // import values from smbiosPlist if they are defined
+    FillSmbiosWithDefaultValue(Model, smbiosPlist.SMBIOS);
   }
 
   applySettings();
@@ -1018,7 +1010,8 @@ EFI_STATUS ConfigManager::InitialisePlatform()
 
   GetCPUProperties();
   DiscoverDevices();
-//  GetMacAddress(&gConf.LanCardArrayNonConst);
+
+  //SavingMode
 
   if ( g_SmbiosDiscoveredSettings.EnabledCores ) {
     GlobalConfig.EnabledCores = g_SmbiosDiscoveredSettings.EnabledCores;
@@ -1029,44 +1022,12 @@ EFI_STATUS ConfigManager::InitialisePlatform()
   selfOem.initialize("config"_XS8, gFirmwareClover, GlobalConfig.OEMBoardFromSmbios, GlobalConfig.OEMProductFromSmbios, (INT32)(DivU64x32(gCPUStructure.CPUFrequency, Mega)), gConf.LanCardArray);
   Status = gConf.LoadConfig(L"config"_XSW);
 
+  GlobalConfig.C3Latency = gSettings.ACPI.SSDT._C3Latency;
+  GlobalConfig.KPKernelPm = gSettings.KernelAndKextPatches._KPKernelPm;
+
   for ( size_t idx = 0 ; idx < GfxPropertiesArrayNonConst.size() ; ++idx ) {
     GfxPropertiesArrayNonConst[idx].LoadVBios = gSettings.Graphics.LoadVBios;
   }
-
-//  /* populate GfxPropertiesArrayNonConst */
-//  GfxPropertiesArrayNonConst.setEmpty();
-//  for ( size_t idx = 0 ; idx < m_Discoverer.GfxPropertiesArray.size() ; ++idx ) {
-//    GfxProperties* gfx = new GfxProperties;
-//    *gfx = GfxPropertiesArray[idx];
-//    (*gfx).LoadVBios = gSettings.Graphics.LoadVBios;
-//    GfxPropertiesArrayNonConst.AddReference(gfx, true);
-//  }
-//
-//  /* populate HdaPropertiesArrayNonConst */
-//  HdaPropertiesArrayNonConst.setEmpty();
-//  for ( size_t idx = 0 ; idx < m_Discoverer.HdaPropertiesArray.size() ; ++idx ) {
-//    HdaProperties* hda = new HdaProperties;
-//    *hda = HdaPropertiesArray[idx];
-//    HdaPropertiesArrayNonConst.AddReference(hda, true);
-//  }
-//
-//  /* populate LanCardArrayNonConst */
-//  LanCardArrayNonConst.setEmpty();
-//  GetUEFIMacAddress();
-////  if ( LanCardArrayNonConst.size() == 0 /*&& gSettings.RtVariables.GetLegacyLanAddress()*/ ) {
-//    for ( size_t idx = 0 ; idx < m_Discoverer.LanCardArray.size() ; ++idx ) {
-//      if ( !LanCardArrayNonConst.containsMacAddress(m_Discoverer.LanCardArray[idx].Mac)) {
-//        LanCardClass* lan = new LanCardClass;
-//        memcpy(&lan->MacAddress, m_Discoverer.LanCardArray[idx].Mac, sizeof(lan->MacAddress));
-//        LanCardArrayNonConst.AddReference(lan, true);
-//      }
-//    }
-////  }
-
-//  // Why this overrides ? Should we remove the setting from config.plist ?
-//  gSettings.GUI.Mouse.PointerEnabled = TRUE;
-//  gSettings.GUI.Mouse.PointerSpeed = 2;
-//  gSettings.GUI.Mouse.DoubleClickTime = 500; //TODO - make it constant as nobody change it
 
   if (gSettings.Devices.Audio.ResetHDA) ResetHDA();
 
